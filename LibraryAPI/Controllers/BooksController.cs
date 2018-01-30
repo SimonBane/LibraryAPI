@@ -2,6 +2,7 @@
 using LibraryAPI.Entities;
 using LibraryAPI.Models;
 using LibraryAPI.Services;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -93,6 +94,69 @@ namespace LibraryAPI.Controllers
             if (!_libraryRepository.Save())
             {
                 throw new Exception($"Deleting book {id} for author {authorId} failed on save.");
+            }
+
+            return NoContent();
+        }
+
+        [HttpPut("{id}")]
+        public IActionResult UpdateBookForAuthor(int authorId, int id, [FromBody] BookForUpdateDto book)
+        {
+            if (book == null)
+            {
+                return BadRequest();
+            }
+
+            if (!_libraryRepository.AuthorExists(authorId))
+            {
+                return NotFound();
+            }
+
+            var bookForAuthorEntity = _libraryRepository.GetBookForAuthor(authorId, id);
+            if (bookForAuthorEntity == null)
+            {
+                return NotFound();
+            }
+
+            Mapper.Map(book, bookForAuthorEntity);
+
+            if (!_libraryRepository.Save())
+            {
+                throw new Exception($"Updating book {id} for author {authorId} failed on save.");
+            }
+
+            return NoContent();
+        }
+
+        [HttpPatch("{id}")]
+        public IActionResult PartiallyUpdateBookForAuthor(int authorId, int id, [FromBody] JsonPatchDocument<BookForUpdateDto> patchDocument)
+        {
+            if (patchDocument == null)
+            {
+                return BadRequest();
+            }
+
+            if (!_libraryRepository.AuthorExists(authorId))
+            {
+                return NotFound();
+            }
+
+            var bookForAuthorEntity = _libraryRepository.GetBookForAuthor(authorId, id);
+            if (bookForAuthorEntity == null)
+            {
+                return NotFound();
+            }
+
+            var bookToPatch = Mapper.Map<BookForUpdateDto>(bookForAuthorEntity);
+
+            patchDocument.ApplyTo(bookToPatch);
+
+            // add validation
+
+            Mapper.Map(bookToPatch, bookForAuthorEntity);
+            if (!_libraryRepository.Save())
+            {
+                throw new Exception($"Patching book {id} for author {authorId} failed on save.");
             }
 
             return NoContent();

@@ -15,7 +15,6 @@ namespace LibraryAPI.Services
         IEnumerable<Book> GetBooksForAuthor(int authorId);
         Book GetBookForAuthor(int authorId, int bookId);
         void AddBookForAuthor(int authorId, Book book);
-        void UpdateBookForAuthor(Book book);
         void DeleteBook(Book book);
         bool Save();
     }

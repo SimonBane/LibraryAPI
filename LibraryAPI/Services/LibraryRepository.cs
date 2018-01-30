@@ -80,11 +80,6 @@ namespace LibraryAPI.Services
             return query;
         }
 
-        public void UpdateBookForAuthor(Book book)
-        {
-            _context.Books.Update(book);
-        }
-
         public bool Save()
         {
             return (_context.SaveChanges() >= 0);

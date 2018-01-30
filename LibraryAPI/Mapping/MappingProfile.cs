@@ -20,10 +20,12 @@ namespace LibraryAPI.Mapping
                     entity.DateOfBirth.GetCurrentAge()));
 
             CreateMap<Book, BookDto>();
+            CreateMap<Book, BookForUpdateDto>();
 
             // From Dto to Entity
             CreateMap<AuthorForCreationDto, Author>();
             CreateMap<BookForCreationDto, Book>();
+            CreateMap<BookForUpdateDto, Book>();
         }
     }
 }
