@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using LibraryAPI.Entities;
+using LibraryAPI.Helpers;
 using LibraryAPI.Models;
 using LibraryAPI.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -13,19 +15,77 @@ namespace LibraryAPI.Controllers
     public class AuthorsController : Controller
     {
         private readonly ILibraryRepository _libraryRepository;
+        private readonly IUrlHelper _urlHelper;
 
-        public AuthorsController(ILibraryRepository libraryRepository)
+        public AuthorsController(ILibraryRepository libraryRepository, IUrlHelper urlHelper)
         {
             _libraryRepository = libraryRepository;
+            _urlHelper = urlHelper;
         }
 
-        [HttpGet]
-        public IActionResult GetAuthors()
+        [HttpGet(Name = "GetAuthors")]
+        public IActionResult GetAuthors(AuthorsResourceParameters authorsResourceParameters)
         {
-            var entityAuthors = _libraryRepository.GetAuthors();
-            var authors = Mapper.Map<IEnumerable<AuthorDto>>(entityAuthors);
+            var entityAuthors = _libraryRepository.GetAuthors(authorsResourceParameters);
 
+            var previousPageLink = entityAuthors.HasPrevious
+                ? CreateAuthorsResourceUri(authorsResourceParameters, ResourceUriType.PreviousPage)
+                : null;
+
+            var nextPageLink = entityAuthors.HasNext
+                ? CreateAuthorsResourceUri(authorsResourceParameters, ResourceUriType.NextPage)
+                : null;
+
+            var paginationMetadata = new
+            {
+                totalCount = entityAuthors.TotalCount,
+                pageSize = entityAuthors.PageSize,
+                currentPage = entityAuthors.CurrentPage,
+                totalPages = entityAuthors.TotalPages,
+                previousPageLink = previousPageLink,
+                nextPageLink = nextPageLink
+            };
+
+            Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(paginationMetadata));
+
+            var authors = Mapper.Map<IEnumerable<AuthorDto>>(entityAuthors);
             return Ok(authors);
+        }
+
+        private string CreateAuthorsResourceUri(AuthorsResourceParameters authorsResourceParameters,
+            ResourceUriType type)
+        {
+            switch (type)
+            {
+                case ResourceUriType.PreviousPage:
+                    return _urlHelper.Link("GetAuthors",
+                        new
+                        {
+                            searchQuery = authorsResourceParameters.SearchQuery,
+                            genre = authorsResourceParameters.Genre,
+                            pageNumber = authorsResourceParameters.PageNumber - 1,
+                            pageSize = authorsResourceParameters.PageSize
+                        });
+                case ResourceUriType.NextPage:
+                    return _urlHelper.Link("GetAuthors",
+                        new
+                        {
+                            searchQuery = authorsResourceParameters.SearchQuery,
+                            genre = authorsResourceParameters.Genre,
+                            pageNumber = authorsResourceParameters.PageNumber + 1,
+                            pageSize = authorsResourceParameters.PageSize
+                        });
+                default:
+                    return _urlHelper.Link("GetAuthors",
+                        new
+                        {
+                            searchQuery = authorsResourceParameters.SearchQuery,
+                            genre = authorsResourceParameters.Genre,
+                            pageNumber = authorsResourceParameters.PageNumber,
+                            pageSize = authorsResourceParameters.PageSize
+                        });
+
+            }
         }
 
         [HttpGet("{id}", Name = "GetAuthor")]

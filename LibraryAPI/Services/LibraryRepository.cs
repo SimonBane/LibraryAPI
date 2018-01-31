@@ -1,4 +1,5 @@
 ﻿using LibraryAPI.Entities;
+using LibraryAPI.Helpers;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -44,22 +45,41 @@ namespace LibraryAPI.Services
             return _context.Authors.FirstOrDefault(a => a.Id == authorId);
         }
 
-        public IEnumerable<Author> GetAuthors()
+        public PagedList<Author> GetAuthors(AuthorsResourceParameters authorsResourceParameters)
         {
-            IQueryable<Author> query = _context.Authors;
-            query = query.OrderBy(a => a.FirstName).ThenBy(a => a.LastName);
+            var collectionBeforePaging = _context.Authors
+                .OrderBy(a => a.FirstName)
+                .ThenBy(a => a.LastName).AsQueryable();
 
-            return query;
+            if (!string.IsNullOrEmpty(authorsResourceParameters.Genre))
+            {
+                //trim and ignore casing
+                var genreForWhereClause = authorsResourceParameters.Genre.Trim().ToLowerInvariant();
+                collectionBeforePaging =
+                    collectionBeforePaging.Where(a => a.Genre.ToLowerInvariant() == genreForWhereClause);
+            }
+
+            if (!string.IsNullOrEmpty(authorsResourceParameters.SearchQuery))
+            {
+                var searchQueryForWhereClause = authorsResourceParameters.SearchQuery.Trim().ToLowerInvariant();
+                collectionBeforePaging = collectionBeforePaging
+                    .Where(a => a.Genre.ToLowerInvariant().Contains(searchQueryForWhereClause)
+                          || a.FirstName.ToLowerInvariant().Contains(searchQueryForWhereClause)
+                          || a.LastName.ToLowerInvariant().Contains(searchQueryForWhereClause));
+            }
+
+            return PagedList<Author>.Create(collectionBeforePaging,
+                authorsResourceParameters.PageNumber,
+                authorsResourceParameters.PageSize);
         }
 
         public IEnumerable<Author> GetAuthors(IEnumerable<int> authorIds)
         {
-            IQueryable<Author> query = _context.Authors;
-            query = query.Where(a => authorIds.Contains(a.Id))
+            return _context.Authors
+                .Where(a => authorIds.Contains(a.Id))
                 .OrderBy(a => a.FirstName)
-                .ThenBy(a => a.LastName);
-
-            return query;
+                .ThenBy(a => a.LastName)
+                .ToList();
         }
 
         public void UpdateAuthor(Author author)
@@ -74,10 +94,10 @@ namespace LibraryAPI.Services
 
         public IEnumerable<Book> GetBooksForAuthor(int authorId)
         {
-            IQueryable<Book> query = _context.Books;
-            query = query.Where(b => b.AuthorId == authorId).OrderBy(b => b.Title);
-
-            return query;
+            return _context.Books
+                .Where(b => b.AuthorId == authorId)
+                .OrderBy(b => b.Title)
+                .ToList();
         }
 
         public bool Save()
