@@ -1,6 +1,6 @@
 ﻿namespace LibraryAPI.Models
 {
-    public class BookDto
+    public class BookDto : LinkedResourceBaseDto
     {
         public int Id { get; set; }
 
