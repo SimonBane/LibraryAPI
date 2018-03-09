@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace LibraryAPI.Helpers
 {
-    public class ArrayModelBinder : IModelBinder
+    internal class ArrayModelBinder : IModelBinder
     {
         public Task BindModelAsync(ModelBindingContext bindingContext)
         {

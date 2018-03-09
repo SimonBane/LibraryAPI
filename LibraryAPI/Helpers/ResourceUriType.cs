@@ -1,6 +1,6 @@
 ﻿namespace LibraryAPI.Helpers
 {
-    public enum ResourceUriType
+    internal enum ResourceUriType
     {
         PreviousPage,
         NextPage,

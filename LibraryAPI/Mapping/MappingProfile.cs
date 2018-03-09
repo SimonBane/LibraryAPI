@@ -8,7 +8,7 @@ namespace LibraryAPI.Mapping
     /// <summary>
     /// Automapper configuration.
     /// </summary>
-    public class MappingProfile : Profile
+    internal class MappingProfile : Profile
     {
         public MappingProfile()
         {

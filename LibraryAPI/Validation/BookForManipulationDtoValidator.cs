@@ -3,7 +3,7 @@ using LibraryAPI.Models;
 
 namespace LibraryAPI.Validation
 {
-    public class BookForManipulationDtoValidator : AbstractValidator<BookForManipulationDto>
+    internal class BookForManipulationDtoValidator : AbstractValidator<BookForManipulationDto>
     {
         public BookForManipulationDtoValidator()
         {

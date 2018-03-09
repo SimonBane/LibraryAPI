@@ -4,7 +4,7 @@ using System;
 
 namespace LibraryAPI.Helpers
 {
-    public class UnprocessableEntityObjectResult : ObjectResult
+    internal class UnprocessableEntityObjectResult : ObjectResult
     {
         public UnprocessableEntityObjectResult(ModelStateDictionary modelState)
             : base(new SerializableError(modelState))

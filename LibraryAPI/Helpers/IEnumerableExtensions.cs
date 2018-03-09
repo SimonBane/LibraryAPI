@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace LibraryAPI.Helpers
 {
-    public static class IEnumerableExtensions
+    internal static class IEnumerableExtensions
     {
         public static IEnumerable<ExpandoObject> ShapeData<TSource>(this IEnumerable<TSource> source, string fields)
         {

@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace LibraryAPI.Services
 {
+    /// <summary>
+    /// The repository used for the whole API.
+    /// </summary>
     public interface ILibraryRepository
     {
         PagedList<Author> GetAuthors(AuthorsResourceParameters authorsResourceParameters);

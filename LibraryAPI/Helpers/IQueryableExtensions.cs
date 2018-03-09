@@ -6,7 +6,7 @@ using System.Linq.Dynamic.Core;
 
 namespace LibraryAPI.Helpers
 {
-    public static class IQueryableExtensions
+    internal static class IQueryableExtensions
     {
         public static IQueryable<T> ApplySort<T>(this IQueryable<T> source, string orderBy,
             Dictionary<string, PropertyMappingValue> mappingDictionary)

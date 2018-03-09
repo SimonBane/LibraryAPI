@@ -3,6 +3,7 @@ using LibraryAPI.Entities;
 using LibraryAPI.Helpers;
 using LibraryAPI.Models;
 using LibraryAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ using System.Linq;
 
 namespace LibraryAPI.Controllers
 {
+    [Authorize]
     [Route("api/authors/{authorId}/books")]
     public class BooksController : Controller
     {

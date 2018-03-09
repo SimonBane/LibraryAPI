@@ -10,10 +10,7 @@ namespace AuthorizationServer.Configuration
         {
             return new ApiResource[]
             {
-                new ApiResource("libraryAPI", "LibraryAPI")
-                {
-                    ApiSecrets = {new Secret("library".Sha256())},
-                },
+                new ApiResource("libraryAPI", "LibraryAPI"),
             };
         }
 
@@ -23,19 +20,18 @@ namespace AuthorizationServer.Configuration
             {
                 new Client()
                 {
-                    ClientId = "library-api",
+                    ClientId = "library-API",
                     ClientName = "LibraryAPI",
-                    AllowedGrantTypes = GrantTypes.Code,
+                    AllowedGrantTypes = GrantTypes.HybridAndClientCredentials,
                     AllowAccessTokensViaBrowser = true,
                     RequireConsent = false,
-                    RedirectUris = {"https://www.getpostman.com/oauth2/callback"},
                     EnableLocalLogin = true,
                     AllowedScopes =
                     {
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
                         IdentityServerConstants.StandardScopes.Email,
-                        "library_api"
+                        "libraryAPI"
                     },
                     ClientSecrets = new List<Secret>(){new Secret("library".Sha256())}
                 },

@@ -2,7 +2,7 @@
 
 namespace LibraryAPI.Helpers
 {
-    public static class DateTimeOffsetExtensions
+    internal static class DateTimeOffsetExtensions
     {
         public static int GetCurrentAge(this DateTimeOffset dateTimeOffset)
         {

@@ -3,6 +3,7 @@ using LibraryAPI.Entities;
 using LibraryAPI.Helpers;
 using LibraryAPI.Models;
 using LibraryAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -12,7 +13,11 @@ using System.Linq;
 
 namespace LibraryAPI.Controllers
 {
+    /// <summary>
+    /// Controller for manipulating Authors.
+    /// </summary>
     [Route("api/authors")]
+    [Authorize]
     public class AuthorsController : Controller
     {
         private readonly ILibraryRepository _libraryRepository;
@@ -20,6 +25,7 @@ namespace LibraryAPI.Controllers
         private readonly IPropertyMappingService _propertyMappingService;
         private readonly ITypeHelperService _typeHelperService;
 
+        /// <inheritdoc />
         public AuthorsController(ILibraryRepository libraryRepository,
             IUrlHelper urlHelper,
             IPropertyMappingService propertyMappingService, ITypeHelperService typeHelperService)
@@ -30,7 +36,13 @@ namespace LibraryAPI.Controllers
             _typeHelperService = typeHelperService;
         }
 
+        /// <summary>
+        /// Gets all existing authors.
+        /// </summary>
+        /// <param name="authorsResourceParameters"></param>
+        /// <returns></returns>
         [HttpGet(Name = "GetAuthors")]
+        [ProducesResponseType(typeof(IEnumerable<AuthorDto>), 200, StatusCode = StatusCodes.Status200OK)]
         public IActionResult GetAuthors(AuthorsResourceParameters authorsResourceParameters)
         {
             if (!_propertyMappingService.ValidMappingExistsFor<AuthorDto, Author>
@@ -83,8 +95,10 @@ namespace LibraryAPI.Controllers
             return Ok(linkedCollectionResource);
         }
 
+        #region CreateResourceUri
+
         private string CreateAuthorsResourceUri(AuthorsResourceParameters authorsResourceParameters,
-            ResourceUriType type)
+                    ResourceUriType type)
         {
             switch (type)
             {
@@ -126,7 +140,16 @@ namespace LibraryAPI.Controllers
             }
         }
 
+        #endregion
+
+        /// <summary>
+        /// Gets a single author.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="fields"></param>
+        /// <returns></returns>
         [HttpGet("{id}", Name = "GetAuthor")]
+        [ProducesResponseType(typeof(AuthorDto), 200, StatusCode = StatusCodes.Status200OK)]
         public IActionResult GetAuthor(int id, [FromQuery] string fields)
         {
             if (!_typeHelperService.TypeHasProperties<AuthorDto>(fields))

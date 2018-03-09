@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using IdentityServer4.AccessTokenValidation;
 using LibraryAPI.Entities;
 using LibraryAPI.Models;
 using LibraryAPI.Services;
@@ -17,8 +18,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.PlatformAbstractions;
 using Newtonsoft.Json.Serialization;
 using NLog.Extensions.Logging;
+using Swashbuckle.AspNetCore.Swagger;
+using System.IO;
 
 namespace LibraryAPI
 {
@@ -66,6 +70,31 @@ namespace LibraryAPI
                 return new UrlHelper(actionContext);
             });
 
+            services.AddAuthentication("Bearer")
+                .AddIdentityServerAuthentication(options =>
+                {
+                    options.RequireHttpsMetadata = false;
+                    options.Authority = "http://localhost:54900/";
+                    options.ApiName = "libraryAPI";
+                    options.SupportedTokens = SupportedTokens.Both;
+                });
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Info
+                {
+                    Title = "LibraryAPI",
+                    Version = "1.0",
+                    Description = "Just a normal library API.",
+                    TermsOfService = "None",
+                    Contact = new Contact { Email = "simeon.banev3@gmail.com", Name = "Simeon Banev", Url = "https://github.com/simonbane" },
+                });
+
+                var basePath = PlatformServices.Default.Application.ApplicationBasePath;
+                var xmlPath = Path.Combine(basePath, "LibraryAPI.xml");
+                c.IncludeXmlComments(xmlPath);
+            });
+
             services.AddTransient<IPropertyMappingService, PropertyMappingService>();
             services.AddTransient<ITypeHelperService, TypeHelperService>();
         }
@@ -104,6 +133,14 @@ namespace LibraryAPI
             }
 
             libraryContext.SeedData();
+
+            app.UseAuthentication();
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "LvMiniAPI 1.0");
+            });
 
             app.UseMvc();
         }

@@ -3,6 +3,7 @@ using LibraryAPI.Entities;
 using LibraryAPI.Helpers;
 using LibraryAPI.Models;
 using LibraryAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ using System.Linq;
 
 namespace LibraryAPI.Controllers
 {
+    [Authorize]
     [Route("api/authorcollections")]
     public class AuthorCollectionsController : Controller
     {
