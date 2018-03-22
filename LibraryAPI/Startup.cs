@@ -142,7 +142,12 @@ namespace LibraryAPI
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "LvMiniAPI 1.0");
             });
 
-            app.UseMvc();
+            app.UseMvc(routes =>
+            {
+                routes.MapRoute(
+                    name: "default",
+                    template: "{controller=Home}/{action=Index}/{id?}");
+            });
         }
     }
 }
