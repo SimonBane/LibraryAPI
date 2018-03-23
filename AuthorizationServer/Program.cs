@@ -31,8 +31,8 @@ namespace AuthorizationServer
                 .CreateLogger();
 
             return WebHost.CreateDefaultBuilder(args)
-                .UseUrls("http://localhost:54900/")
                 .UseStartup<Startup>()
+                .CaptureStartupErrors(true)
                 .ConfigureLogging(builder =>
                 {
                     builder.ClearProviders();

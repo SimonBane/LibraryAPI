@@ -1,18 +1,24 @@
 ﻿using AuthorizationServer.Configuration;
+using IdentityServer4.EntityFramework.DbContexts;
+using IdentityServer4.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace AuthorizationServer
 {
     public class Startup
     {
+        private static ILoggerFactory LoggerFactory;
         public static IConfigurationRoot ConfigurationRoot;
         public IConfiguration Configuration { get; }
         public IHostingEnvironment Environment { get; }
 
-        public Startup(IConfiguration configuration, IHostingEnvironment environment)
+        public Startup(IConfiguration configuration, IHostingEnvironment environment, ILoggerFactory loggerFactory)
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(environment.ContentRootPath)
@@ -24,6 +30,7 @@ namespace AuthorizationServer
 
             Configuration = configuration;
             Environment = environment;
+            LoggerFactory = loggerFactory;
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -38,14 +45,36 @@ namespace AuthorizationServer
                 options.AuthenticationDisplayName = "Windows";
             });
 
+            var connectionString = Configuration["connectionStrings:IdentityServerData"];
+
+            string assembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
+
             services.AddIdentityServer()
                 .AddDeveloperSigningCredential()
-                .AddInMemoryApiResources(Config.ApiResources())
-                .AddInMemoryClients(Config.Clients());
+                .AddConfigurationStore(options =>
+                {
+                    options.ConfigureDbContext = builder =>
+                        builder.UseSqlServer(connectionString,
+                            sql => sql.MigrationsAssembly(assembly));
+                })
+                .AddOperationalStore(options =>
+                {
+                    options.ConfigureDbContext = builder =>
+                        builder.UseSqlServer(connectionString,
+                            sql => sql.MigrationsAssembly(assembly));
+                });
+
+            var cors = new DefaultCorsPolicyService(LoggerFactory.CreateLogger<DefaultCorsPolicyService>())
+            {
+                AllowedOrigins = { "https://foo", "https://bar" }
+            };
+            services.AddSingleton<ICorsPolicyService>(cors);
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ConfigurationDbContext configurationDbContext,
+            PersistedGrantDbContext persistedGrantDbContext)
         {
             if (env.IsDevelopment())
             {
@@ -56,6 +85,11 @@ namespace AuthorizationServer
             {
                 app.UseExceptionHandler("Home/Error");
             }
+
+            configurationDbContext.Database.Migrate();
+            configurationDbContext.SeedData();
+
+            persistedGrantDbContext.Database.Migrate();
 
             app.UseIdentityServer();
             app.UseStaticFiles();
