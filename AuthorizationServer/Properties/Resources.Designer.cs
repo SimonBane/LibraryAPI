@@ -59,23 +59,5 @@ namespace AuthorizationServer.Properties {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to http://localhost:50000/.
-        /// </summary>
-        internal static string ClientAddress {
-            get {
-                return ResourceManager.GetString("ClientAddress", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Server=(localdb)\\mssqllocaldb;Database=LibraryAuthServer;Trusted_Connection=True;.
-        /// </summary>
-        internal static string IdentityServerData {
-            get {
-                return ResourceManager.GetString("IdentityServerData", resourceCulture);
-            }
-        }
     }
 }

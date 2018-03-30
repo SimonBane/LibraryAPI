@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Library.Web.Controllers
 {
@@ -26,6 +27,7 @@ namespace Library.Web.Controllers
         private readonly IUrlHelper _urlHelper;
         private readonly IPropertyMappingService _propertyMappingService;
         private readonly ITypeHelperService _typeHelperService;
+        private ILog _logger = Logger.GetInstance;
 
         /// <inheritdoc />
         public AuthorsController(ILibraryRepository libraryRepository,
@@ -45,7 +47,7 @@ namespace Library.Web.Controllers
         /// <returns></returns>
         [HttpGet(Name = "GetAuthors")]
         [ProducesResponseType(typeof(IEnumerable<AuthorDto>), 200, StatusCode = StatusCodes.Status200OK)]
-        public IActionResult GetAuthors(AuthorsResourceParameters authorsResourceParameters)
+        public async Task<IActionResult> GetAuthors(AuthorsResourceParameters authorsResourceParameters)
         {
             if (!_propertyMappingService.ValidMappingExistsFor<AuthorDto, Author>
                 (authorsResourceParameters.OrderBy))
@@ -58,43 +60,51 @@ namespace Library.Web.Controllers
                 return BadRequest();
             }
 
-            var entityAuthors = _libraryRepository.GetAuthors(authorsResourceParameters);
-
-            var paginationMetadata = new
+            try
             {
-                totalCount = entityAuthors.TotalCount,
-                pageSize = entityAuthors.PageSize,
-                currentPage = entityAuthors.CurrentPage,
-                totalPages = entityAuthors.TotalPages
-            };
+                var entityAuthors = _libraryRepository.GetAuthors(authorsResourceParameters);
 
-            Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(paginationMetadata));
+                var paginationMetadata = new
+                {
+                    totalCount = entityAuthors.TotalCount,
+                    pageSize = entityAuthors.PageSize,
+                    currentPage = entityAuthors.CurrentPage,
+                    totalPages = entityAuthors.TotalPages
+                };
 
-            var authors = Mapper.Map<IEnumerable<AuthorDto>>(entityAuthors);
+                Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(paginationMetadata));
 
-            var links = CreateLinksForAuthors(authorsResourceParameters,
-                entityAuthors.HasNext, entityAuthors.HasPrevious);
+                var authors = Mapper.Map<IEnumerable<AuthorDto>>(entityAuthors);
 
-            var shapedAuthors = authors.ShapeData(authorsResourceParameters.Fields);
+                var links = CreateLinksForAuthors(authorsResourceParameters,
+                    entityAuthors.HasNext, entityAuthors.HasPrevious);
 
-            var shapedAuthorsWithLinks = shapedAuthors.Select(author =>
+                var shapedAuthors = authors.ShapeData(authorsResourceParameters.Fields);
+
+                var shapedAuthorsWithLinks = shapedAuthors.Select(author =>
+                {
+                    var authorAsDictionary = author as IDictionary<string, object>;
+                    var authorLinks =
+                        CreateLinksForAuthor((int)authorAsDictionary["Id"], authorsResourceParameters.Fields);
+
+                    authorAsDictionary.Add("links", authorLinks);
+
+                    return authorAsDictionary;
+                });
+
+                var linkedCollectionResource = new
+                {
+                    value = shapedAuthorsWithLinks,
+                    links
+                };
+
+                return Ok(linkedCollectionResource);
+            }
+            catch (Exception ex)
             {
-                var authorAsDictionary = author as IDictionary<string, object>;
-                var authorLinks =
-                    CreateLinksForAuthor((int)authorAsDictionary["Id"], authorsResourceParameters.Fields);
-
-                authorAsDictionary.Add("links", authorLinks);
-
-                return authorAsDictionary;
-            });
-
-            var linkedCollectionResource = new
-            {
-                value = shapedAuthorsWithLinks,
-                links
-            };
-
-            return Ok(linkedCollectionResource);
+                await _logger.LogCustomExceptionAsync(ex, null);
+                return RedirectToAction("Error", "Home");
+            }
         }
 
         #region CreateResourceUri
@@ -152,55 +162,72 @@ namespace Library.Web.Controllers
         /// <returns></returns>
         [HttpGet("{id}", Name = "GetAuthor")]
         [ProducesResponseType(typeof(AuthorDto), 200, StatusCode = StatusCodes.Status200OK)]
-        public IActionResult GetAuthor(int id, [FromQuery] string fields)
+        public async Task<IActionResult> GetAuthor(int id, [FromQuery] string fields)
         {
             if (!_typeHelperService.TypeHasProperties<AuthorDto>(fields))
             {
                 return BadRequest();
             }
 
-            var authorEntity = _libraryRepository.GetAuthor(id);
-            if (authorEntity == null)
+            try
             {
-                return NotFound();
+                var authorEntity = _libraryRepository.GetAuthor(id);
+                if (authorEntity == null)
+                {
+                    return NotFound();
+                }
+
+                var author = Mapper.Map<AuthorDto>(authorEntity);
+
+                var links = CreateLinksForAuthor(id, fields);
+
+                var linkedResourceToReturn = author.ShapeData(fields)
+                    as IDictionary<string, object>;
+
+                linkedResourceToReturn.Add("links", links);
+                return Ok(linkedResourceToReturn);
             }
-
-            var author = Mapper.Map<AuthorDto>(authorEntity);
-
-            var links = CreateLinksForAuthor(id, fields);
-
-            var linkedResourceToReturn = author.ShapeData(fields)
-                as IDictionary<string, object>;
-
-            linkedResourceToReturn.Add("links", links);
-            return Ok(linkedResourceToReturn);
+            catch (Exception ex)
+            {
+                await _logger.LogCustomExceptionAsync(ex, null);
+                return RedirectToAction("Error", "Home");
+            }
         }
 
         [HttpPost]
-        public IActionResult CreateAuthor([FromBody] AuthorForCreationDto author)
+        public async Task<IActionResult> CreateAuthor([FromBody] AuthorForCreationDto author)
         {
             if (author == null)
             {
                 return BadRequest();
             }
-            var authorEntity = Mapper.Map<Author>(author);
 
-            _libraryRepository.AddAuthor(authorEntity);
-            if (!_libraryRepository.Save())
+            try
             {
-                throw new Exception("Creating an author failed on save.");
+                var authorEntity = Mapper.Map<Author>(author);
+
+                _libraryRepository.AddAuthor(authorEntity);
+                if (!_libraryRepository.Save())
+                {
+                    throw new Exception("Creating an author failed on save.");
+                }
+
+                var authorToReturn = Mapper.Map<AuthorDto>(authorEntity);
+
+                var links = CreateLinksForAuthor(authorToReturn.Id, null);
+
+                var linkedResourceToReturn = authorToReturn.ShapeData(null)
+                    as IDictionary<string, object>;
+
+                linkedResourceToReturn.Add("links", links);
+
+                return CreatedAtRoute("GetAuthor", new { id = linkedResourceToReturn["Id"] }, linkedResourceToReturn);
             }
-
-            var authorToReturn = Mapper.Map<AuthorDto>(authorEntity);
-
-            var links = CreateLinksForAuthor(authorToReturn.Id, null);
-
-            var linkedResourceToReturn = authorToReturn.ShapeData(null)
-                as IDictionary<string, object>;
-
-            linkedResourceToReturn.Add("links", links);
-
-            return CreatedAtRoute("GetAuthor", new { id = linkedResourceToReturn["Id"] }, linkedResourceToReturn);
+            catch (Exception ex)
+            {
+                await _logger.LogCustomExceptionAsync(ex, null);
+                return RedirectToAction("Error", "Home");
+            }
         }
 
         [HttpPost("{id}")]
@@ -215,21 +242,29 @@ namespace Library.Web.Controllers
         }
 
         [HttpDelete("{id}", Name = "DeleteAuthor")]
-        public IActionResult DeleteAuthor(int id)
+        public async Task<IActionResult> DeleteAuthor(int id)
         {
-            var authorEntity = _libraryRepository.GetAuthor(id);
-            if (authorEntity == null)
+            try
             {
-                return NotFound();
-            }
+                var authorEntity = _libraryRepository.GetAuthor(id);
+                if (authorEntity == null)
+                {
+                    return NotFound();
+                }
 
-            _libraryRepository.DeleteAuthor(authorEntity);
-            if (!_libraryRepository.Save())
+                _libraryRepository.DeleteAuthor(authorEntity);
+                if (!_libraryRepository.Save())
+                {
+                    throw new Exception($"Deleting author {id} failed on save.");
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
             {
-                throw new Exception($"Deleting author {id} failed on save.");
+                await _logger.LogCustomExceptionAsync(ex, null);
+                return RedirectToAction("Error", "Home");
             }
-
-            return NoContent();
         }
 
         private IEnumerable<LinkDto> CreateLinksForAuthor(int id, string fields)

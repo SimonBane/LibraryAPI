@@ -43,6 +43,7 @@ namespace AuthorizationServer
             {
                 options.AutomaticAuthentication = false;
                 options.AuthenticationDisplayName = "Windows";
+                options.ForwardClientCertificate = false;
             });
 
             var connectionString = Configuration["connectionStrings:IdentityServerData"];
@@ -83,7 +84,7 @@ namespace AuthorizationServer
             }
             else
             {
-                app.UseExceptionHandler("Home/Error");
+                app.UseExceptionHandler("/Home/Error");
             }
 
             configurationDbContext.Database.Migrate();

@@ -16,11 +16,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.PlatformAbstractions;
 using Newtonsoft.Json.Serialization;
 using NLog.Extensions.Logging;
-using Swashbuckle.AspNetCore.Swagger;
-using System.IO;
 
 namespace Library.Web
 {
@@ -36,42 +33,10 @@ namespace Library.Web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            //JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-
-            //services.AddAuthentication(opt =>
-            //    {
-            //        opt.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            //        opt.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-            //    })
-            //    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-            //    {
-            //        options.AccessDeniedPath = "/Authorization/AccessDenied";
-            //    })
-            //    .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, opt =>
-            //    {
-            //        opt.Authority = "http://localhost:54900/";
-            //        opt.RequireHttpsMetadata = false;
-
-            //        opt.ClientId = "library-API";
-            //        opt.ClientSecret = "library";
-            //        opt.SignedOutRedirectUri = new PathString("/Home/Index");
-            //        opt.ResponseType = "code id_token";
-
-            //        opt.Scope.Clear();
-            //        opt.Scope.Add("openid");
-            //        opt.Scope.Add("profile");
-            //        opt.Scope.Add("offline_access");
-            //        opt.Scope.Add("email");
-
-            //        opt.GetClaimsFromUserInfoEndpoint = true;
-            //        opt.SaveTokens = true;
-
-            //        opt.TokenValidationParameters = new TokenValidationParameters()
-            //        {
-            //            NameClaimType = JwtClaimTypes.Name,
-            //            RoleClaimType = JwtClaimTypes.Role
-            //        };
-            //    });
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            services
+                .AddEntityFrameworkSqlServer()
+                .AddDbContext<LibraryContext>();
 
             services.AddAuthentication("Bearer")
                 .AddIdentityServerAuthentication(options =>
@@ -102,11 +67,6 @@ namespace Library.Web
 
             services.AddAutoMapper();
 
-            var connectionString = Configuration["connectionStrings:LibraryDBConnectionString"];
-            services
-                .AddEntityFrameworkSqlServer()
-                .AddDbContext<LibraryContext>(o => o.UseSqlServer(connectionString));
-
             services.AddScoped<ILibraryRepository, LibraryRepository>();
 
             services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
@@ -114,22 +74,6 @@ namespace Library.Web
             {
                 var actionContext = implementationFactory.GetService<IActionContextAccessor>().ActionContext;
                 return new UrlHelper(actionContext);
-            });
-
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new Info
-                {
-                    Title = "LibraryAPI",
-                    Version = "1.0",
-                    Description = "Just a normal library API.",
-                    TermsOfService = "None",
-                    Contact = new Contact { Email = "simeon.banev3@gmail.com", Name = "Simeon Banev", Url = "https://github.com/simonbane" },
-                });
-
-                var basePath = PlatformServices.Default.Application.ApplicationBasePath;
-                var xmlPath = Path.Combine(basePath, "Library.Web.xml");
-                c.IncludeXmlComments(xmlPath);
             });
 
             services.AddTransient<IPropertyMappingService, PropertyMappingService>();
@@ -146,6 +90,9 @@ namespace Library.Web
         public void Configure(IApplicationBuilder app, IHostingEnvironment env,
             ILoggerFactory loggerFactory, LibraryContext libraryContext)
         {
+            libraryContext.Database.Migrate();
+            libraryContext.SeedData();
+
             loggerFactory.AddConsole();
             loggerFactory.AddDebug(LogLevel.Information);
             loggerFactory.AddNLog();
@@ -160,16 +107,7 @@ namespace Library.Web
                 app.UseExceptionHandler("/Home/Error");
             }
 
-            libraryContext.Database.Migrate();
-            libraryContext.SeedData();
-
             app.UseAuthentication();
-
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "LvMiniAPI 1.0");
-            });
 
             app.UseStaticFiles();
 

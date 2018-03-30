@@ -1,7 +1,6 @@
 ﻿using IdentityServer4;
 using IdentityServer4.Models;
 using System.Collections.Generic;
-using Resources = AuthorizationServer.Properties.Resources;
 
 namespace AuthorizationServer.Configuration
 {
@@ -34,8 +33,8 @@ namespace AuthorizationServer.Configuration
 
                     RequireConsent = false,
                     AllowOfflineAccess = true,
-                    RedirectUris = new [] {$"{Resources.ClientAddress}/signin-oidc"},
-                    PostLogoutRedirectUris = {$"{Resources.ClientAddress}/signout-callback-oidc"},
+                    RedirectUris = new [] {$"http://simolibraryapi.azurewebsites.net/signin-oidc" },
+                    PostLogoutRedirectUris = {$"http://simolibraryapi.azurewebsites.net/signout-callback-oidc" },
                     EnableLocalLogin = true,
                     AlwaysIncludeUserClaimsInIdToken = true,
 
